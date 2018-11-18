@@ -29,12 +29,32 @@ def plot_correlation(
     plt.show()
 
 
+def plot_histogram_1d(
+    data,
+    x_label='',
+    fig_title=''
+):
+    fig = plt.figure(fig_title, figsize=(15, 10))
+
+    # TODO: Think about what API to allow multiple histograms in one figure
+    ax = fig.add_subplot(1, 1, 1)
+    ax.set_xlabel(x_label)
+    ax.set_ylabel('Count')
+    # TODO: Set suptitle
+    # TODO: Think about how to set bins
+    ax.hist(data)
+
+    plt.show()
+
+
 # TODO: Move this to lib
-def data_frame_filter_column_lt(
+# TODO: Rename this to 'data_frame_set_max'
+def data_frame_set_max(
     data_frame,
     column_name,
     value
 ):
+    data_frame = data_frame.dropna()
     return data_frame[data_frame[column_name] < value]
 
 
@@ -60,7 +80,7 @@ def analyze_pancakes_covariances():
 
     # Filter
     # data_frame = data_frame[data_frame[x_column_name] < 0.3]
-    data_frame = data_frame_filter_column_lt(
+    data_frame = data_frame_set_max(
         data_frame,
         y_column_name,
         0.1
@@ -99,12 +119,12 @@ def analyze_synthetic_covariances():
     y_column_name = 'TranslationDeviation'
 
     # Filter
-    data_frame = data_frame_filter_column_lt(
+    data_frame = data_frame_set_max(
         data_frame,
         x_column_name,
         0.01
     )
-    data_frame = data_frame_filter_column_lt(
+    data_frame = data_frame_set_max(
         data_frame,
         y_column_name,
         0.02
@@ -126,6 +146,42 @@ def analyze_synthetic_covariances():
     )
 
 
+def analyze_synthetic_pose_distribution():
+    '''
+    Histogram the poses
+    '''
+    # TODO: Make a plotting spec file (as key value)
+    # TODO: Make the spec file use relative paths
+    data_source_path = 'C:/data/temp/kpis_covariance_sx_pose_distribution/monte_carlo_poses_40.csv'
+
+    # Read data
+    data_frame = pd.read_csv(data_source_path)
+    data_frame = data_frame.dropna()
+
+    # Setup data
+    # Setup x
+    data_column_name = 'tx'
+
+    # Filter
+    # data_frame = data_frame_set_max(
+    #     data_frame,
+    #     data_column_name,
+    #     0.01
+    # )
+
+    # Plot
+    data = data_frame[data_column_name]
+    data_label = 'X'
+    fig_title = 'Distribution of sim3'
+
+    plot_histogram_1d(
+        data,
+        data_label,
+        fig_title
+    )
+        
+
 if __name__ == '__main__':
-    analyze_pancakes_covariances()
+    # analyze_pancakes_covariances()
     # analyze_synthetic_covariances()
+    analyze_synthetic_pose_distribution()
