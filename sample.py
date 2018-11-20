@@ -32,9 +32,19 @@ def plot_correlation(
 def plot_histogram_1d(
     data,
     x_label='',
-    fig_title=''
+    fig_title='',
+    bin_count=10,
+    bin_min='auto',
+    bin_max='auto'
 ):
-    fig = plt.figure(fig_title, figsize=(15, 10))
+    fig = plt.figure(fig_title, figsize=(10, 7))
+
+    # Compute bins
+    if bin_min is 'auto':
+        bin_min = min(data)
+    if bin_max is 'auto':
+        bin_max = max(data)
+    bins = np.linspace(bin_min, bin_max, bin_count)
 
     # TODO: Think about what API to allow multiple histograms in one figure
     ax = fig.add_subplot(1, 1, 1)
@@ -42,7 +52,9 @@ def plot_histogram_1d(
     ax.set_ylabel('Count')
     # TODO: Set suptitle
     # TODO: Think about how to set bins
-    ax.hist(data)
+    ax.hist(
+        data,
+        bins=bins)
 
     plt.show()
 
@@ -146,6 +158,42 @@ def analyze_synthetic_covariances():
     )
 
 
+def analyze_pancakes_pose_distribution():
+    '''
+    Histogram the poses
+    '''
+    # TODO: Make a plotting spec file (as key value)
+    # TODO: Make the spec file use relative paths
+    data_source_path = 'C:/data/temp/kpis_covariance_ios_pose_distribution/monte_carlo_poses_3.csv'
+
+    # Read data
+    data_frame = pd.read_csv(data_source_path)
+    data_frame = data_frame.dropna()
+
+    # Setup data
+    # Setup x
+    data_column_name = 'tx'
+
+    # Filter
+    # data_frame = data_frame_set_max(
+    #     data_frame,
+    #     data_column_name,
+    #     0.01
+    # )
+
+    # Plot
+    data = data_frame[data_column_name]
+    data_label = 'tx (meters)'
+    fig_title = 'Distribution of sim3'
+
+    plot_histogram_1d(
+        data=data,
+        x_label=data_label,
+        fig_title=fig_title,
+        bin_count=30
+    )
+
+
 def analyze_synthetic_pose_distribution():
     '''
     Histogram the poses
@@ -184,4 +232,5 @@ def analyze_synthetic_pose_distribution():
 if __name__ == '__main__':
     # analyze_pancakes_covariances()
     # analyze_synthetic_covariances()
-    analyze_synthetic_pose_distribution()
+    analyze_pancakes_pose_distribution()
+    # analyze_synthetic_pose_distribution()
