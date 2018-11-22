@@ -14,7 +14,7 @@ def plot_correlation(
     fig_title=''
 ):
     # TODO: Read column names from spec
-    fig = plt.figure(fig_title, figsize=(15, 10))
+    fig = plt.figure(fig_title, figsize=(10, 7))
 
     ax11 = fig.add_subplot(1, 2, 1)
     ax11.set_xlabel(x_label)
@@ -67,16 +67,24 @@ def data_frame_set_max(
     value
 ):
     data_frame = data_frame.dropna()
-    return data_frame[data_frame[column_name] < value]
+    data_frame = data_frame[data_frame[column_name] < value]
+    print('Set {0} max={1}, {2} rows remaining'.format(
+        column_name,
+        value,
+        len(data_frame)))
+    return data_frame
 
 
-def analyze_pancakes_covariances():
+def analyze_pancakes_covariances(
+    data_source_path,
+    max_translation_error='auto',
+    max_deviation='auto'):
     # TODO: Make a plotting spec file (as key value)
     # TODO: Make the spec file use relative paths
-    data_source_path = 'C:/data/temp/kpis_covariance_ios_monte_carlo/individual_metrics_per_spatial_anchor.csv'
 
     # Read data
     data_frame = pd.read_csv(data_source_path)
+    data_frame = data_frame.dropna()
 
     # Setup data
     # Setup x
@@ -84,19 +92,27 @@ def analyze_pancakes_covariances():
 
     # Setup y
     # TODO: Support custom columns
+    skillet_deviation_t = data_frame['sk_dev_translation']
+    pancake_deviation_t = data_frame['pk_dev_translation']
     custom_column = pd.Series(
-        data_frame['sk_dev_translation'] + data_frame['pk_dev_translation'],
+        np.sqrt((skillet_deviation_t * skillet_deviation_t) + (pancake_deviation_t * pancake_deviation_t)),
         index=data_frame.index)
     y_column_name = 'dev_translation'
     data_frame[y_column_name] = custom_column
 
     # Filter
-    # data_frame = data_frame[data_frame[x_column_name] < 0.3]
-    data_frame = data_frame_set_max(
-        data_frame,
-        y_column_name,
-        0.1
-    )
+    if max_translation_error is not 'auto':
+        data_frame = data_frame_set_max(
+            data_frame,
+            x_column_name,
+            max_deviation
+        )
+    if max_deviation is not 'auto':
+        data_frame = data_frame_set_max(
+            data_frame,
+            y_column_name,
+            max_deviation
+        )
 
     # Plot
     x_data = data_frame[x_column_name]
@@ -114,10 +130,13 @@ def analyze_pancakes_covariances():
     )
 
 
-def analyze_synthetic_covariances():
+def analyze_synthetic_covariances(
+    data_source_path,
+    max_translation_error='auto',
+    max_deviation='auto'
+    ):
     # TODO: Make a plotting spec file (as key value)
     # TODO: Make the spec file use relative paths
-    data_source_path = 'C:/data/temp/kpis_covariance_sx_monte_carlo/individual_metrics.csv'
 
     # Read data
     data_frame = pd.read_csv(data_source_path)
@@ -131,16 +150,18 @@ def analyze_synthetic_covariances():
     y_column_name = 'TranslationDeviation'
 
     # Filter
-    data_frame = data_frame_set_max(
-        data_frame,
-        x_column_name,
-        0.01
-    )
-    data_frame = data_frame_set_max(
-        data_frame,
-        y_column_name,
-        0.02
-    )
+    if max_translation_error is not 'auto':
+        data_frame = data_frame_set_max(
+            data_frame,
+            x_column_name,
+            max_translation_error
+        )
+    if max_deviation is not 'auto':
+        data_frame = data_frame_set_max(
+            data_frame,
+            y_column_name,
+            max_deviation
+        )
 
     # Plot
     x_data = data_frame[x_column_name]
@@ -183,7 +204,7 @@ def analyze_pancakes_pose_distribution():
 
     # Plot
     data = data_frame[data_column_name]
-    data_label = 'tx (meters)'
+    data_label = 'tx'
     fig_title = 'Distribution of sim3'
 
     plot_histogram_1d(
@@ -227,10 +248,79 @@ def analyze_synthetic_pose_distribution():
         data_label,
         fig_title
     )
-        
+
+
+def analyze_covariance_vs_inliers(
+    data_source_path
+):
+    # Read data
+    data_frame = pd.read_csv(data_source_path)
+    
+    # Setup data
+    inlier_column_name = 'InlierCount'
+    x_column_name = 'InvInlierCount'
+    data_frame[x_column_name] = 1 / data_frame[inlier_column_name]
+    deviation_column_name = 'DeviationTranslation'
+
+    # Filter
+    max_inv_inlier_count = 0.002
+    data_frame = data_frame_set_max(
+        data_frame,
+        x_column_name,
+        max_inv_inlier_count
+    )
+
+    # Plot
+    fig_title = 'Covariance vs Inlier Count'
+    x_label = '1 / Inlier Count'
+    y_label = 'Translation Standard Deviation'
+    x_data = data_frame[x_column_name]
+    y_data = data_frame[deviation_column_name]
+    plot_correlation(
+        x_data,
+        y_data,
+        x_label,
+        y_label,
+        fig_title
+    )
+
 
 if __name__ == '__main__':
-    # analyze_pancakes_covariances()
-    # analyze_synthetic_covariances()
-    analyze_pancakes_pose_distribution()
+    # Analyze Hessian
+    # analyze_pancakes_covariances(
+    #     'C:/data/temp/kpis_covariance/individual_metrics_per_spatial_anchor.csv',
+    #     max_translation_error=1.0,
+    #     max_deviation=0.8
+    # )
+    # analyze_synthetic_covariances(
+    #     'C:/data/temp/kpis_covariance_sx/individual_metrics.csv',
+    #     max_translation_error=0.05,
+    #     max_deviation='auto'
+    # )
+
+    # Analyze inliers vs covariance
+    # analyze_covariance_vs_inliers('C:/data/temp/kpis_covariance_sx/covariance.csv')
+
+    # Analyze Monte Carlo
+    # analyze_pancakes_covariances(
+    #     'C:/data/temp/kpis_covariance_ios_monte_carlo/individual_metrics_per_spatial_anchor.csv',
+    #     max_deviation=0.1
+    # )
+    # analyze_synthetic_covariances(
+    #     'C:/data/temp/kpis_covariance_sx_monte_carlo/individual_metrics.csv',
+    #     max_translation_error=0.01,
+    #     max_deviation=0.02
+    # )
+    # analyze_pancakes_pose_distribution()
     # analyze_synthetic_pose_distribution()
+
+    # Analyze Ceres
+    analyze_pancakes_covariances(
+        'C:/data/temp/kpis_covariance_pancakes_ceres/individual_metrics_per_spatial_anchor.csv',
+        max_deviation='auto'
+    )
+    # analyze_synthetic_covariances(
+    #     'C:/data/temp/kpis_covariance_sx_ceres/individual_metrics.csv',
+    #     max_translation_error=0.025,
+    #     max_deviation=2
+    # )
